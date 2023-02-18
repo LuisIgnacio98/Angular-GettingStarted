@@ -1,19 +1,13 @@
-import { Component, OnInit } from "@angular/core";
+import { Component, OnDestroy, OnInit } from "@angular/core";
+import { Subscription } from "rxjs";
 import { IProduct } from "./product";
 import { ProductService } from "./product.service";
 
 @Component({
-    selector: 'pm-products',
     templateUrl: './product-list.component.html',
     styleUrls: ['./product-list.component.css']
 })
-export class ProductListComponent implements OnInit {
-    pageTitle: string = 'Product List';
-    imageWidth: number = 50;
-    imageMargin: number = 2;
-    showImage: boolean = false;
-    
-    private _listFilter: string = '';
+export class ProductListComponent implements OnInit, OnDestroy {
     get listFilter(): string {
       return this._listFilter;
     }
@@ -22,11 +16,32 @@ export class ProductListComponent implements OnInit {
       this.filteredProducts = this.performFilter(value);
     }
 
+    pageTitle: string = 'Product List';
+    imageWidth: number = 50;
+    imageMargin: number = 2;
+    showImage: boolean = false;
+    errorMessage: string = ''
+    sub!: Subscription;
     filteredProducts: IProduct[] = [];
-
     products: IProduct[] = [];
-
+    
+    private _listFilter: string = '';
+    
     constructor(private productService: ProductService){}
+
+    ngOnInit(): void {
+      this.sub = this.productService.getProducts().subscribe({
+        next: products => {
+          this.products = products;
+          this.filteredProducts = this.products;
+        },
+        error: err => this.errorMessage = err
+      });
+    }
+
+    ngOnDestroy(): void {
+      this.sub.unsubscribe();
+    }
 
     performFilter(filterBy: string): IProduct[]{
       filterBy = filterBy.toLocaleLowerCase();
@@ -36,11 +51,6 @@ export class ProductListComponent implements OnInit {
 
     toggleImage(): void{
       this.showImage = !this.showImage
-    }
-
-    ngOnInit(): void {
-      this.products = this.productService.getProducts();
-      this.filteredProducts = this.products;
     }
 
     onRatingClicked(message: string): void {
